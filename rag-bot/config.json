@@ -1,0 +1,6 @@
+{
+  "model_provider": "openai",
+  "openai_model": "gpt-4.1-mini",
+  "gemini_model": "gemini-1.5-flash",
+  "temperature": 0.1
+}

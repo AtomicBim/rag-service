@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Бэкенд-сервис, который ходит в интернет через VPN
+  rag-bot:
+    build: ./rag-bot
+    container_name: rag_bot_service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Прокси для OpenAI
+      - HTTPS_PROXY=socks5://172.17.0.1:10808
+      - HTTP_PROXY=socks5://172.17.0.1:10808
+      # Исключения для внутренних IP, которые не должны ходить через прокси
+      - NO_PROXY=localhost,127.0.0.1,rag-chat
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./rag-bot/.env:/app/.env:ro
+
+  # Фронтенд-сервис с Gradio UI
+  rag-chat:
+    build: ./rag-chat
+    container_name: rag_chat_service
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      # Исключения для Qdrant и сервиса эмбеддингов
+      - NO_PROXY=192.168.42.188,192.168.45.64
+      - PYTHONUNBUFFERED=1
+    # Гарантирует, что rag-bot запустится первым
+    depends_on:
+      - rag-bot
