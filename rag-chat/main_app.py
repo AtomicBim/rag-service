@@ -53,17 +53,15 @@ class RAGOrchestrator:
         self._log_completion("эмбеддинг получен")
 
         self._log_step(2, "Поиск релевантного контекста в Qdrant...")
-        # Переименуем переменную для ясности, теперь это не просто текст, а структурированные данные
         structured_context, sources = self._search_and_prepare_context(question_embedding)
         if not structured_context:
             return "В базе знаний не найдено релевантного контекста.", ""
 
         self._log_step(3, "Отправка запроса на LLM-сервис...")
-        # Передаем структурированный контекст в LLM-сервис
         answer = self.query_llm(question, structured_context)
         self._log_completion("ответ от LLM получен")
 
-        return answer, f"Источники: {', '.join(sources)}"```
+        return answer, f"Источники: {', '.join(sources)}"
     
     def _search_and_prepare_context(self, question_embedding: list[float]) -> Tuple[list[dict], list[str]]:
         """Поиск контекста в Qdrant и подготовка данных для LLM-сервиса."""
