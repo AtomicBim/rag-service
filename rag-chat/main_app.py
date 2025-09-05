@@ -63,8 +63,8 @@ class RAGOrchestrator:
 
         return answer, f"Источники: {', '.join(sources)}"
     
-    def _search_and_prepare_context(self, question_embedding: list[float]) -> Tuple[str, list[str]]:
-        """Поиск контекста в Qdrant и подготовка источников."""
+    def _search_and_prepare_context(self, question_embedding: list[float]) -> Tuple[list[dict], list[str]]:
+        """Поиск контекста в Qdrant и подготовка данных для LLM-сервиса."""
         search_results = self.qdrant_client.search(
             collection_name=config.COLLECTION_NAME,
             query_vector=question_embedding,
@@ -73,12 +73,19 @@ class RAGOrchestrator:
         )
         
         if not search_results:
-            return "", []
+            return [], []
         
-        context = "\n---\n".join([result.payload['text'] for result in search_results])
-        sources = sorted(list(set([result.payload['source_file'] for result in search_results])))
+        # СОЗДАЕМ КОНТЕКСТ В ФОРМАТЕ, КОТОРЫЙ ОЖИДАЕТ RAG-BOT
+        # Это будет список словарей: [{"text": "...", "file": "..."}, ...]
+        context_payload = [
+            {"text": result.payload['text'], "file": result.payload.get('source_file', 'unknown')}
+            for result in search_results
+        ]
+        
+        # Список источников для отображения в UI остается без изменений
+        sources = sorted(list(set([result.payload.get('source_file', 'unknown') for result in search_results])))
         self._log_completion(f"найдено {len(sources)} источников")
-        return context, sources
+        return context_payload, sources
     
     def _log_step(self, step_num: int, message: str) -> None:
         """Логирование шага обработки."""
