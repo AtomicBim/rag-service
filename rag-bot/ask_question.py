@@ -19,20 +19,35 @@ logger = logging.getLogger(__name__)
 class AppConfig:
     def __init__(self):
         self.script_dir = Path(__file__).parent.absolute()
-        load_dotenv(self.script_dir / ".env")
-        self.config = self._load_config()
+        # Load environment variables from root .env and local .env
+        load_dotenv(self.script_dir.parent / ".env")  # Root .env first
+        load_dotenv(self.script_dir / ".env")         # Local .env overrides
+        self.config = self._load_config_from_env()
         self.system_prompt = self._load_system_prompt()
         self.openai_client = self._setup_openai_client()
         self.gemini_client = self._setup_gemini_client()
     
+    def _load_config_from_env(self) -> Dict[str, Any]:
+        """Load configuration from environment variables with fallbacks."""
+        return {
+            "model_provider": os.getenv("MODEL_PROVIDER", "openai"),
+            "openai_model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            "gemini_model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
+            "temperature": float(os.getenv("TEMPERATURE", "0.1"))
+        }
+
     def _load_config(self) -> Dict[str, Any]:
+        """Legacy method for loading config from JSON file (kept for compatibility)."""
         config_path = self.script_dir / "config.json"
         try:
             with open(config_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                json_config = json.load(f)
+                # Merge JSON config with environment variables (env vars take priority)
+                env_config = self._load_config_from_env()
+                return {**json_config, **env_config}
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            logger.error(f"Ошибка загрузки config.json: {e}")
-            sys.exit(1)
+            logger.warning(f"config.json not found or invalid, using environment variables: {e}")
+            return self._load_config_from_env()
     
     def _load_system_prompt(self) -> str:
         prompt_path = self.script_dir / "system_prompt.txt"
@@ -92,7 +107,7 @@ class AIService:
         if not self.config.openai_client:
             raise HTTPException(status_code=500, detail="OpenAI клиент не настроен.")
         
-        model_name = self.config.config.get("openai_model", "gpt-4o")
+        model_name = self.config.config.get("openai_model", "gpt-4o-mini")
         user_prompt = self._build_user_prompt(question, context)
         
         try:
@@ -151,4 +166,5 @@ async def generate_answer_endpoint(request: RAGRequest):
     return await ai_service.generate_answer(request)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("RAG_BOT_PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

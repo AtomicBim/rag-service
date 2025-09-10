@@ -1,8 +1,15 @@
+import os
 import requests
 import gradio as gr
 import config
 from qdrant_client import QdrantClient
 from typing import Optional, Tuple
+from dotenv import load_dotenv
+from pathlib import Path
+
+# Load environment variables from root .env file
+root_dir = Path(__file__).parent.parent
+load_dotenv(root_dir / ".env")
 
 class RAGOrchestrator:
     def __init__(self, qdrant_client: QdrantClient):
@@ -104,6 +111,11 @@ if __name__ == "__main__":
         orchestrator = RAGOrchestrator(qdrant_client=q_client)
 
         print("\nЗапуск интерфейса Gradio...")
+        
+        # Get configuration from environment variables
+        gradio_title = os.getenv("GRADIO_TITLE", "RAG-система для ВНД Атомстройкомплекс")
+        gradio_description = os.getenv("GRADIO_DESCRIPTION", "Введите свой вопрос. Система найдет релевантные документы и сгенерирует ответ.")
+        
         iface = gr.Interface(
             fn=orchestrator.process_query,
             inputs=gr.Textbox(lines=3, label="Ваш вопрос к базе знаний"),
@@ -111,12 +123,15 @@ if __name__ == "__main__":
                 gr.Textbox(label="Ответ"),
                 gr.Textbox(label="Найденные источники")
             ],
-            title="RAG-система для ВНД Атомстройкомплекс ",
-            description="Введите свой вопрос. Система наидет релевантные документы и сгенерирует ответ."
+            title=gradio_title,
+            description=gradio_description
         )
         
-        # Запускаем Gradio на порту 80, чтобы был доступен по IP машины
-        iface.launch(server_name="0.0.0.0")
+        # Запускаем Gradio с настройками из переменных окружения
+        server_name = os.getenv("GRADIO_SERVER_NAME", "0.0.0.0")
+        server_port = int(os.getenv("RAG_CHAT_PORT", "7860"))
+        
+        iface.launch(server_name=server_name, server_port=server_port)
 
     except Exception as e:
         print(f"❌ КРИТИЧЕСКАЯ ОШИБКА ПРИ ЗАПУСКЕ ОРКЕСТРАТОРА: {e}")

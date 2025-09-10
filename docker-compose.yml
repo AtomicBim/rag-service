@@ -7,16 +7,30 @@ services:
     container_name: rag_bot_service
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${RAG_BOT_PORT:-8000}:${RAG_BOT_PORT:-8000}"
     environment:
-      # Прокси для OpenAI
-      - HTTPS_PROXY=socks5://172.17.0.1:10808
-      - HTTP_PROXY=socks5://172.17.0.1:10808
-      # Исключения для внутренних IP, которые не должны ходить через прокси
-      - NO_PROXY=localhost,127.0.0.1,rag-chat
-      - PYTHONUNBUFFERED=1
+      # Прокси для OpenAI (из переменных окружения)
+      - HTTPS_PROXY=socks5://${PROXY_HOST:-172.17.0.1}:${PROXY_PORT:-10808}
+      - HTTP_PROXY=socks5://${PROXY_HOST:-172.17.0.1}:${PROXY_PORT:-10808}
+      # Исключения для внутренних сервисов
+      - NO_PROXY=${NO_PROXY_SERVICES:-localhost,127.0.0.1,rag-chat}
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      # Передача переменных окружения в контейнер
+      - MODEL_PROVIDER=${MODEL_PROVIDER:-openai}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-flash}
+      - TEMPERATURE=${TEMPERATURE:-0.1}
+      - RAG_BOT_PORT=${RAG_BOT_PORT:-8000}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
-      - ./rag-bot/.env:/app/.env:ro
+      # Монтируем корневой .env файл
+      - ./.env:/app/.env:ro
+      # Монтируем локальный .env если существует (для переопределения)
+      - ./rag-bot/.env:/app/local.env:ro
+    env_file:
+      - .env
 
   # Фронтенд-сервис с Gradio UI
   rag-chat:
@@ -24,11 +38,29 @@ services:
     container_name: rag_chat_service
     restart: unless-stopped
     ports:
-      - "7860:7860"
+      - "${RAG_CHAT_PORT:-7860}:${RAG_CHAT_PORT:-7860}"
     environment:
-      # Исключения для Qdrant и сервиса эмбеддингов
-      - NO_PROXY=192.168.42.188,192.168.45.64
-      - PYTHONUNBUFFERED=1
+      # Исключения для внутренних сервисов (Qdrant и эмбеддинги)
+      - NO_PROXY=${NO_PROXY_INTERNAL:-192.168.42.188,192.168.45.64}
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      # Передача переменных окружения в контейнер
+      - QDRANT_HOST=${QDRANT_HOST:-192.168.42.188}
+      - QDRANT_PORT=${QDRANT_PORT:-6333}
+      - COLLECTION_NAME=${COLLECTION_NAME:-internal_regulations_v2}
+      - SEARCH_LIMIT=${SEARCH_LIMIT:-20}
+      - EMBEDDING_SERVICE_HOST=${EMBEDDING_SERVICE_HOST:-192.168.45.55}
+      - EMBEDDING_SERVICE_PORT=${EMBEDDING_SERVICE_PORT:-8001}
+      - RAG_BOT_PORT=${RAG_BOT_PORT:-8000}
+      - RAG_CHAT_PORT=${RAG_CHAT_PORT:-7860}
+      - GRADIO_SERVER_NAME=${GRADIO_SERVER_NAME:-0.0.0.0}
+      - GRADIO_TITLE=${GRADIO_TITLE:-RAG-система для ВНД Атомстройкомплекс}
+      - GRADIO_DESCRIPTION=${GRADIO_DESCRIPTION:-Введите свой вопрос. Система найдет релевантные документы и сгенерирует ответ.}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      # Монтируем корневой .env файл
+      - ./.env:/app/.env:ro
+    env_file:
+      - .env
     # Гарантирует, что rag-bot запустится первым
     depends_on:
       - rag-bot
