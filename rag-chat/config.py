@@ -12,6 +12,11 @@ QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "internal_regulations_v2")
 SEARCH_LIMIT = int(os.getenv("SEARCH_LIMIT", "20"))
 
+# Search Parameters Defaults
+DEFAULT_THRESHOLD = float(os.getenv("DEFAULT_THRESHOLD", "0.7"))
+DEFAULT_SEARCH_TYPE = os.getenv("DEFAULT_SEARCH_TYPE", "hybrid")
+DEFAULT_RERANK = os.getenv("DEFAULT_RERANK", "true").lower() == "true"
+
 # External Services Configuration
 EMBEDDING_SERVICE_HOST = os.getenv("EMBEDDING_SERVICE_HOST", "192.168.45.55")
 EMBEDDING_SERVICE_PORT = os.getenv("EMBEDDING_SERVICE_PORT", "8001")
@@ -19,4 +24,9 @@ EMBEDDING_SERVICE_ENDPOINT = f"http://{EMBEDDING_SERVICE_HOST}:{EMBEDDING_SERVIC
 
 # RAG Bot Service Configuration  
 RAG_BOT_PORT = os.getenv("RAG_BOT_PORT", "8000")
-OPENAI_API_ENDPOINT = f"http://rag-bot:{RAG_BOT_PORT}/generate_answer" 
+OPENAI_API_ENDPOINT = f"http://rag-bot:{RAG_BOT_PORT}/generate_answer"
+
+# Search Service Configuration (GPU машина)
+SEARCH_SERVICE_HOST = os.getenv("SEARCH_SERVICE_HOST", "192.168.45.55")
+SEARCH_SERVICE_PORT = os.getenv("SEARCH_SERVICE_PORT", "8002")
+SEARCH_SERVICE_ENDPOINT = f"http://{SEARCH_SERVICE_HOST}:{SEARCH_SERVICE_PORT}/search" 
