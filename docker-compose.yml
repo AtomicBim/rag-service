@@ -4,7 +4,7 @@ services:
   # Бэкенд-сервис, который ходит в интернет через VPN
   rag-bot:
     build: ./rag-bot
-    container_name: rag_bot_service
+    container_name: rag_bot
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -20,8 +20,8 @@ services:
 
   # НОВЫЙ сервис для создания эмбеддингов через OpenAI
   rag-embedding:
-    build: ./embedding_service
-    container_name: embedding_service
+    build: ./rag-embedding
+    container_name: rag_embedding
     restart: unless-stopped
     ports:
       - "8001:8001"
@@ -37,7 +37,7 @@ services:
   # Фронтенд-сервис с Gradio UI
   rag-chat:
     build: ./rag-chat
-    container_name: rag_chat_service
+    container_name: rag_chat
     restart: unless-stopped
     ports:
       - "7860:7860"
