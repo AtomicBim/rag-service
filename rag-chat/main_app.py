@@ -19,7 +19,7 @@ class RAGOrchestrator:
             60
         )
 
-    def query_llm(self, question: str, context: str) -> str:
+    def query_llm(self, question: str, context: list[dict]) -> str:
         """Обращается к LLM-сервису."""
         result = self._make_api_request(
             config.OPENAI_API_ENDPOINT,
