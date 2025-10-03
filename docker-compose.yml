@@ -55,6 +55,7 @@ services:
       - EMBEDDING_SERVICE_URL=http://rag-embedding:8001/create_embedding
     volumes:
       - ./rag-source:/app/rag-source:ro
+      - ./rag-indexer-state:/app/state  # Персистентное хранилище состояния индексации
     depends_on:
       rag-embedding:
         condition: service_healthy

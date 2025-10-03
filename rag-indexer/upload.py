@@ -15,8 +15,9 @@ from qdrant_client.http.models.models import PointStruct
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 
-# Файл для хранения состояния индексации
-STATE_FILE = "indexing_state.json"
+# Файл для хранения состояния индексации (в персистентной директории)
+STATE_DIR = "/app/state"
+STATE_FILE = os.path.join(STATE_DIR, "indexing_state.json")
 SUPPORTED_EXTENSIONS = { ".docx", ".pdf", ".doc" }
 
 logger = config.setup_logging(__name__)
@@ -198,6 +199,9 @@ class DocumentIndexer:
 
 def load_state() -> Dict[str, float]:
     """Загружает состояние индексации из файла."""
+    # Создаем директорию для состояния, если её нет
+    os.makedirs(STATE_DIR, exist_ok=True)
+
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, 'r', encoding='utf-8') as f:
             try:
@@ -210,6 +214,9 @@ def load_state() -> Dict[str, float]:
 def save_state(state: Dict[str, float]) -> None:
     """Сохраняет состояние индексации в файл."""
     try:
+        # Создаем директорию для состояния, если её нет
+        os.makedirs(STATE_DIR, exist_ok=True)
+
         with open(STATE_FILE, 'w', encoding='utf-8') as f:
             json.dump(state, f, indent=4, ensure_ascii=False)
     except Exception as e:
