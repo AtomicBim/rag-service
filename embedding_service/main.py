@@ -25,13 +25,14 @@ else:
     openai_client = AsyncOpenAI(api_key=api_key)
 
 # Модель для эмбеддингов от OpenAI
-EMBEDDING_MODEL = "text-embedding-ada-002"
+EMBEDDING_MODEL = "text-embedding-3-large"
+EMBEDDING_DIMENSION = 1024
 
 # --- FastAPI приложение ---
 app = FastAPI(
     title="OpenAI Embedding Service",
     description="Сервис для создания векторных представлений текста с использованием OpenAI API",
-    version="1.1.0"
+    version="1.2.0"
 )
 
 # --- Модели данных Pydantic ---
@@ -70,12 +71,13 @@ async def create_embedding(request: TextRequest):
         )
     
     try:
-        logger.info(f"Создание эмбеддинга для текста длиной {len(request.text)} символов")
+        logger.info(f"Создание эмбеддинга для текста длиной {len(request.text)} символов с размерностью {EMBEDDING_DIMENSION}")
         
         # Вызов API OpenAI
         response = await openai_client.embeddings.create(
             input=[request.text.replace("\n", " ")], # OpenAI рекомендует заменять newlines
-            model=EMBEDDING_MODEL
+            model=EMBEDDING_MODEL,
+            dimensions=EMBEDDING_DIMENSION
         )
         
         embedding = response.data[0].embedding
