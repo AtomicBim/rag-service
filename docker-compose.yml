@@ -15,6 +15,12 @@ services:
       - PYTHONUNBUFFERED=1
     volumes:
       - ./rag-bot/.env:/app/.env:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # НОВЫЙ сервис для создания эмбеддингов через OpenAI
   rag-embedding:
@@ -31,6 +37,12 @@ services:
       - PYTHONUNBUFFERED=1
     volumes:
       - ./rag-bot/.env:/app/.env:ro # Используем тот же .env для ключа
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Сервис для индексации документов
   rag-indexer:
@@ -38,12 +50,14 @@ services:
     container_name: rag_indexer
     restart: "no"
     environment:
-      - QDRANT_HOST=192.168.42.188
+      - QDRANT_HOST=${QDRANT_HOST:-192.168.42.188}
+      - QDRANT_PORT=${QDRANT_PORT:-6333}
       - EMBEDDING_SERVICE_URL=http://rag-embedding:8001/create_embedding
     volumes:
       - ./rag-source:/app/rag-source:ro
     depends_on:
-      - rag-embedding
+      rag-embedding:
+        condition: service_healthy
 
   # Фронтенд-сервис с Gradio UI
   rag-chat:
@@ -54,8 +68,13 @@ services:
       - "7860:7860"
     environment:
       # Исключения для Qdrant и внутренних сервисов
-      - NO_PROXY=192.168.42.188,rag-bot,rag-embedding
+      - NO_PROXY=${QDRANT_HOST:-192.168.42.188},rag-bot,rag-embedding
+      - QDRANT_HOST=${QDRANT_HOST:-192.168.42.188}
+      - QDRANT_PORT=${QDRANT_PORT:-6333}
+      - COLLECTION_NAME=${COLLECTION_NAME:-internal_regulations_v2}
       - PYTHONUNBUFFERED=1
-          # Гарантирует, что rag-bot и rag-embedding запустятся первыми    depends_on:
-      - rag-bot
-      - rag-embedding
+    depends_on:
+      rag-bot:
+        condition: service_healthy
+      rag-embedding:
+        condition: service_healthy

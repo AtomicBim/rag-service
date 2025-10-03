@@ -216,49 +216,48 @@ def save_state(state: Dict[str, float]) -> None:
         logger.error(f"Ошибка сохранения состояния: {e}")
 
 def convert_doc_to_docx(file_path: str) -> Optional[str]:
-    """Конвертирует .doc в .docx и удаляет оригинальный .doc файл."""
-    if sys.platform != "win32":
-        logger.warning(f"  - ⚠️ Конверсия .doc доступна только на Windows: {os.path.basename(file_path)}")
-        return None
+    """Конвертирует .doc в .docx с использованием LibreOffice (доступно в Linux/Docker)."""
+    import subprocess
 
-    try:
-        import win32com.client as win32
-    except ImportError:
-        logger.error("  - ❌ win32com.client не доступен. Установите pywin32 для конвертации .doc файлов.")
-        return None
+    abs_path_doc = os.path.abspath(file_path)
+    abs_path_docx = os.path.splitext(abs_path_doc)[0] + ".docx"
 
-    word = None
-    try:
-        abs_path_doc = os.path.abspath(file_path)
-        abs_path_docx = os.path.splitext(abs_path_doc)[0] + ".docx"
-
-        if os.path.exists(abs_path_docx):
-            logger.info(f"  - ✅ .docx уже существует, удаляем .doc: {os.path.basename(file_path)}")
-            os.remove(abs_path_doc)
-            return abs_path_docx
-
-        logger.info(f"  - 🔄 Конвертация .doc → .docx: {os.path.basename(file_path)}")
-
-        word = win32.Dispatch("Word.Application")
-        word.visible = False
-        doc = word.Documents.Open(abs_path_doc)
-        doc.SaveAs(abs_path_docx, FileFormat=12)
-        doc.Close()
-
+    if os.path.exists(abs_path_docx):
+        logger.info(f"  - ✅ .docx уже существует, удаляем .doc: {os.path.basename(file_path)}")
         os.remove(abs_path_doc)
-        logger.info(f"  - ✅ Конвертация завершена, .doc файл удален: {os.path.basename(file_path)}")
-
         return abs_path_docx
 
+    try:
+        logger.info(f"  - 🔄 Конвертация .doc → .docx: {os.path.basename(file_path)}")
+
+        # Используем LibreOffice для конвертации
+        result = subprocess.run(
+            [
+                'libreoffice', '--headless', '--convert-to', 'docx',
+                '--outdir', os.path.dirname(abs_path_doc), abs_path_doc
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if result.returncode == 0 and os.path.exists(abs_path_docx):
+            os.remove(abs_path_doc)
+            logger.info(f"  - ✅ Конвертация завершена, .doc файл удален: {os.path.basename(file_path)}")
+            return abs_path_docx
+        else:
+            logger.error(f"  - ❌ LibreOffice конвертация не удалась: {result.stderr}")
+            return None
+
+    except subprocess.TimeoutExpired:
+        logger.error(f"  - ❌ Timeout при конвертации {os.path.basename(file_path)}")
+        return None
+    except FileNotFoundError:
+        logger.error(f"  - ❌ LibreOffice не установлен в системе. Пропуск .doc файла: {os.path.basename(file_path)}")
+        return None
     except Exception as e:
         logger.error(f"  - ❌ Ошибка конвертации {os.path.basename(file_path)}: {e}")
         return None
-    finally:
-        if word:
-            try:
-                word.Quit()
-            except:
-                pass
 
 def extract_text_from_docx(file_path: str) -> Optional[str]:
     """Извлекает элементы из .docx файла с помощью unstructured."""
