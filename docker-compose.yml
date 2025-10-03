@@ -13,10 +13,26 @@ services:
       - HTTPS_PROXY=socks5://172.17.0.1:10808
       - HTTP_PROXY=socks5://172.17.0.1:10808
       # Исключения для внутренних IP, которые не должны ходить через прокси
-      - NO_PROXY=localhost,127.0.0.1,rag-chat
+      - NO_PROXY=localhost,127.0.0.1,rag-chat,embedding-service
       - PYTHONUNBUFFERED=1
     volumes:
       - ./rag-bot/.env:/app/.env:ro
+
+  # НОВЫЙ сервис для создания эмбеддингов через OpenAI
+  embedding-service:
+    build: ./embedding_service
+    container_name: embedding_service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      # Прокси для OpenAI
+      - HTTPS_PROXY=socks5://172.17.0.1:10808
+      - HTTP_PROXY=socks5://172.17.0.1:10808
+      - NO_PROXY=localhost,127.0.0.1
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./rag-bot/.env:/app/.env:ro # Используем тот же .env для ключа
 
   # Фронтенд-сервис с Gradio UI
   rag-chat:
@@ -26,9 +42,10 @@ services:
     ports:
       - "7860:7860"
     environment:
-      # Исключения для Qdrant и сервиса эмбеддингов
-      - NO_PROXY=192.168.42.188,192.168.45.64
+      # Исключения для Qdrant и внутренних сервисов
+      - NO_PROXY=192.168.42.188,rag-bot,embedding-service
       - PYTHONUNBUFFERED=1
-    # Гарантирует, что rag-bot запустится первым
+    # Гарантирует, что rag-bot и embedding-service запустятся первыми
     depends_on:
       - rag-bot
+      - embedding-service
