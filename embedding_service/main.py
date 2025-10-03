@@ -25,7 +25,7 @@ else:
     openai_client = AsyncOpenAI(api_key=api_key)
 
 # Модель для эмбеддингов от OpenAI
-EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-ada-002")
 
 # --- FastAPI приложение ---
 app = FastAPI(
