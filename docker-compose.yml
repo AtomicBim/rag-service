@@ -13,13 +13,13 @@ services:
       - HTTPS_PROXY=socks5://172.17.0.1:10808
       - HTTP_PROXY=socks5://172.17.0.1:10808
       # Исключения для внутренних IP, которые не должны ходить через прокси
-      - NO_PROXY=localhost,127.0.0.1,rag-chat,embedding-service
+      - NO_PROXY=localhost,127.0.0.1,rag-chat,rag-embedding
       - PYTHONUNBUFFERED=1
     volumes:
       - ./rag-bot/.env:/app/.env:ro
 
   # НОВЫЙ сервис для создания эмбеддингов через OpenAI
-  embedding-service:
+  rag-embedding:
     build: ./embedding_service
     container_name: embedding_service
     restart: unless-stopped
@@ -43,9 +43,8 @@ services:
       - "7860:7860"
     environment:
       # Исключения для Qdrant и внутренних сервисов
-      - NO_PROXY=192.168.42.188,rag-bot,embedding-service
+      - NO_PROXY=192.168.42.188,rag-bot,rag-embedding
       - PYTHONUNBUFFERED=1
-    # Гарантирует, что rag-bot и embedding-service запустятся первыми
-    depends_on:
+          # Гарантирует, что rag-bot и rag-embedding запустятся первыми    depends_on:
       - rag-bot
-      - embedding-service
+      - rag-embedding
