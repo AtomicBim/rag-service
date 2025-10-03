@@ -1,0 +1,6 @@
+qdrant-client
+unstructured[docx]
+pypdf
+langchain
+requests
+pywin32; sys_platform == 'win32'

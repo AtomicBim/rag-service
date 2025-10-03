@@ -34,6 +34,19 @@ services:
     volumes:
       - ./rag-bot/.env:/app/.env:ro # Используем тот же .env для ключа
 
+  # Сервис для индексации документов
+  rag-indexer:
+    build: ./rag-indexer
+    container_name: rag_indexer
+    restart: "no"
+    environment:
+      - QDRANT_HOST=192.168.42.188
+      - EMBEDDING_SERVICE_URL=http://rag-embedding:8001/create_embedding
+    volumes:
+      - ./rag-source:/app/rag-source:ro
+    depends_on:
+      - rag-embedding
+
   # Фронтенд-сервис с Gradio UI
   rag-chat:
     build: ./rag-chat
