@@ -1,34 +1,74 @@
-version: '3.8'
-
 services:
-  # Бэкенд-сервис, который ходит в интернет через VPN
+  # Векторная база данных
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: rag_qdrant
+    restart: unless-stopped
+    ports:
+      - "6390:6333"
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+
+  # Бэкенд-сервис RAG (LLM)
   rag-bot:
     build: ./rag-bot
     container_name: rag_bot_service
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8090:8000"
+    env_file:
+      - .env
     environment:
-      # Прокси для OpenAI
-      - HTTPS_PROXY=socks5://172.17.0.1:10808
-      - HTTP_PROXY=socks5://172.17.0.1:10808
-      # Исключения для внутренних IP, которые не должны ходить через прокси
-      - NO_PROXY=localhost,127.0.0.1,rag-chat
       - PYTHONUNBUFFERED=1
-    volumes:
-      - ./rag-bot/.env:/app/.env:ro
+    depends_on:
+      - qdrant
 
-  # Фронтенд-сервис с Gradio UI
+  # UI (Gradio)
   rag-chat:
     build: ./rag-chat
     container_name: rag_chat_service
     restart: unless-stopped
     ports:
-      - "7860:7860"
+      - "7890:7860"
+    env_file:
+      - .env
     environment:
-      # Исключения для Qdrant и сервиса эмбеддингов
-      - NO_PROXY=192.168.42.188,192.168.45.64
       - PYTHONUNBUFFERED=1
-    # Гарантирует, что rag-bot запустится первым
+      - QDRANT_HOST=qdrant
     depends_on:
       - rag-bot
+      - qdrant
+    volumes:
+      - ./data:/app/data
+
+  # Yandex Bot
+  rag-yandex-bot:
+    build: ./rag-yandex-bot
+    container_name: rag_yandex_bot_service
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QDRANT_HOST=qdrant
+      - RAG_BOT_ENDPOINT=http://rag-bot:8000/generate_answer
+    depends_on:
+      - rag-bot
+      - qdrant
+
+  # Data Ingestion (Run manually or on schedule, but defined here for environment context)
+  # docker-compose run rag-ingest python ingest.py
+  rag-ingest:
+    build: ./rag-ingest
+    container_name: rag_ingest_utility
+    profiles: [ "tools" ] # Won't start by default
+    env_file:
+      - .env
+    environment:
+      - QDRANT_HOST=qdrant
+      - DOCS_DIR=/app/data
+    volumes:
+      - ./data:/app/data
+      - ./rag-ingest/ingest_state.db:/app/rag-ingest/ingest_state.db
+    depends_on:
+      - qdrant

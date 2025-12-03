@@ -44,9 +44,19 @@ class AppConfig:
             sys.exit(1)
     
     def _setup_openai_client(self) -> Optional[AsyncOpenAI]:
+        # OpenRouter priority
+        openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        if openrouter_key:
+            logger.info("Используется OpenRouter API")
+            return AsyncOpenAI(
+                api_key=openrouter_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
+        
+        # Fallback to standard OpenAI
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            logger.warning("Переменная окружения OPENAI_API_KEY не установлена")
+            logger.warning("Переменная окружения OPENAI_API_KEY (или OPENROUTER_API_KEY) не установлена")
             return None
         return AsyncOpenAI(api_key=api_key)
     
@@ -90,9 +100,12 @@ class AIService:
     
     async def _generate_openai_answer(self, question: str, context: List[SourceChunk]) -> tuple[str, str]:
         if not self.config.openai_client:
-            raise HTTPException(status_code=500, detail="OpenAI клиент не настроен.")
+            raise HTTPException(status_code=500, detail="OpenAI/OpenRouter клиент не настроен.")
         
-        model_name = self.config.config.get("openai_model", "gpt-4o")
+        # Приоритет env vars
+        model_name = os.getenv("OPENROUTER_MODEL") or self.config.config.get("openai_model", "gpt-4o")
+        temperature = float(os.getenv("LLM_TEMPERATURE") or self.config.config.get("temperature", 0.1))
+        
         user_prompt = self._build_user_prompt(question, context)
         
         try:
@@ -102,14 +115,14 @@ class AIService:
                     {"role": "system", "content": self.config.system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=self.config.config.get("temperature", 0.1),
+                temperature=temperature,
             )
             # Просто берем текстовый ответ
             answer = response.choices[0].message.content
             return answer.strip(), model_name
         except Exception as e:
-            logger.error(f"Ошибка при обращении к OpenAI: {e}")
-            raise HTTPException(status_code=500, detail="Ошибка обработки запроса OpenAI.")
+            logger.error(f"Ошибка при обращении к OpenAI/OpenRouter: {e}")
+            raise HTTPException(status_code=500, detail="Ошибка обработки запроса OpenAI/OpenRouter.")
 
     async def _generate_gemini_answer(self, question: str, context: List[SourceChunk]) -> tuple[str, str]:
         if not self.config.gemini_client:
