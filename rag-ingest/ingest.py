@@ -31,7 +31,7 @@ COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "internal_regulations_v2")
 
 # Embeddings Config
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-EMBEDDING_MODEL = os.getenv("OPENROUTER_EMBEDDING_MODEL", "cohere/embed-multilingual-v3.0")
+EMBEDDING_MODEL = os.getenv("OPENROUTER_EMBEDDING_MODEL", "google/gemini-embedding-001")
 
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 100
