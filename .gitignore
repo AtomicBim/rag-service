@@ -1,2 +1,23 @@
+# Environment variables
 .env
-rag-bot/.env
+**/.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Vector DB Storage (Qdrant)
+qdrant_data/
+
+# Ingestion State
+rag-ingest/ingest_state.db
+
+# Logs
+*.log
+*_logs.txt
+
+# OS specific
+.DS_Store
+Thumbs.db
