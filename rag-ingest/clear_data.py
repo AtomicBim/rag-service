@@ -16,7 +16,7 @@ load_dotenv(project_root / ".env")
 
 # Configuration
 COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "internal_regulations_v2")
-DB_PATH = os.getenv("INGEST_DB_PATH", "./ingest_state.db")
+DB_PATH = os.getenv("INGEST_DB_PATH", "/app/state/ingest_state.db")
 
 def get_qdrant_client():
     # Try environment variables first
