@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 DOCS_DIR = os.getenv("DOCS_DIR", "./data") 
-DB_PATH = os.getenv("INGEST_DB_PATH", "./rag-ingest/ingest_state.db")
+DB_PATH = os.getenv("INGEST_DB_PATH", "./ingest_state.db")
 
 QDRANT_HOST = os.getenv("QDRANT_HOST", "qdrant")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))

@@ -69,6 +69,6 @@ services:
       - DOCS_DIR=/app/data
     volumes:
       - ./data:/app/data
-      - ./rag-ingest/ingest_state.db:/app/rag-ingest/ingest_state.db
+      - ./rag-ingest/ingest_state.db:/app/ingest_state.db
     depends_on:
       - qdrant
