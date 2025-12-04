@@ -322,10 +322,7 @@ async def handle_text_message(client: YandexMessengerClient, message: dict):
                     answer = result.get("answer", "Пустой ответ от LLM")
                     
                     # 4. Send Answer
-                    sources = sorted(list(set([c['file'] for c in context])))[:3]
-                    sources_text = "\n".join([f"📄 {s}" for s in sources])
-                    
-                    final_message = f"{answer}\n\n📚 **Источники:**\n{sources_text}"
+                    final_message = answer
                     await client.send_message(chat_id, final_message)
                 else:
                     error_text = await response.text()

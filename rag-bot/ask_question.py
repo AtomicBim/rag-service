@@ -146,9 +146,10 @@ class AIService:
             raise HTTPException(status_code=500, detail="Ошибка обработки запроса Gemini.")
 
     async def generate_answer(self, request: RAGRequest) -> PlainTextAnswerResponse:
-        provider = request.model_provider or self.config.config.get("model_provider", "openai")
+        # Приоритет: запрос -> .env -> config.json -> default
+        provider = request.model_provider or os.getenv("MODEL_PROVIDER") or self.config.config.get("model_provider", "openai")
         
-        if provider == "openai":
+        if provider in ["openai", "openrouter"]:
             answer_text, model_name = await self._generate_openai_answer(request.question, request.context)
         elif provider == "gemini":
             answer_text, model_name = await self._generate_gemini_answer(request.question, request.context)

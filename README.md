@@ -67,38 +67,6 @@ class PlainTextAnswerResponse(BaseModel):
 
 #### Пошаговый процесс обработки запроса:
 
-1. **Получение эмбеддинга** - запрос к сервису эмбеддингов для векторизации вопроса
-2. **Поиск в Qdrant** - поиск релевантных документов по векторному сходству
-3. **Формирование контекста** - подготовка найденных фрагментов для LLM
-4. **Генерация ответа** - отправка запроса в rag-bot для получения ответа
-5. **Возврат результата** - показ ответа и источников пользователю
-
-### 3. Конфигурационные файлы
-
-#### rag-bot/config.json
-```json
-{
-  "model_provider": "openai",
-  "openai_model": "gpt-4.1-mini",
-  "gemini_model": "gemini-1.5-flash",
-  "temperature": 0.1
-}
-```
-
-#### rag-chat/config.py
-```python
-QDRANT_HOST = "192.168.42.188"           # Хост Qdrant DB
-QDRANT_PORT = 6333                       # Порт Qdrant DB
-COLLECTION_NAME = "internal_regulations_v2"  # Коллекция документов
-SEARCH_LIMIT = 30                        # Лимит поиска документов
-
-EMBEDDING_SERVICE_ENDPOINT = "http://192.168.45.55:8001/create_embedding"
-OPENAI_API_ENDPOINT = "http://rag-bot:8000/generate_answer"
-```
-
-#### rag-bot/system_prompt.txt
-Системный промпт для LLM, определяющий поведение AI-ассистента:
-- Использование только предоставленного контекста
 - Запрет на использование общих знаний
 - Краткие и точные ответы
 - Обработка случаев отсутствия ответа в документах
@@ -113,19 +81,6 @@ OPENAI_API_ENDPOINT = "http://rag-bot:8000/generate_answer"
 version: '3.8'
 services:
   rag-bot:
-    build: ./rag-bot
-    container_name: rag_bot_service
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    environment:
-      - HTTPS_PROXY=socks5://172.17.0.1:10808  # Прокси для OpenAI
-      - HTTP_PROXY=socks5://172.17.0.1:10808
-      - NO_PROXY=localhost,127.0.0.1,rag-chat
-      - PYTHONUNBUFFERED=1
-    volumes:
-      - ./rag-bot/.env:/app/.env:ro
-
   rag-chat:
     build: ./rag-chat
     container_name: rag_chat_service  
@@ -176,38 +131,6 @@ CMD ["python", "main_app.py"]
 
 ### rag-chat/requirements.txt
 - `qdrant-client==1.9.0` - клиент для Qdrant векторной БД
-- `requests==2.32.3` - HTTP клиент для API запросов
-- `gradio==4.44.1` - библиотека для создания веб-интерфейса
-
-## Установка и запуск
-
-### Требования
-- Docker и Docker Compose
-- Файл `.env` в папке `rag-bot` с API ключами:
-  ```
-  OPENAI_API_KEY=your_openai_api_key
-  GEMINI_API_KEY=your_gemini_api_key
-  ```
-
-### Запуск системы
-
-1. **Клонирование репозитория:**
-   ```bash
-   git clone <repository_url>
-   cd rag-service
-   ```
-
-2. **Настройка переменных окружения:**
-   ```bash
-   # Создайте файл rag-bot/.env и добавьте API ключи
-   echo "OPENAI_API_KEY=your_key_here" > rag-bot/.env
-   echo "GEMINI_API_KEY=your_key_here" >> rag-bot/.env
-   ```
-
-3. **Запуск через Docker Compose:**
-   ```bash
-   docker-compose up -d
-   ```
 
 4. **Проверка статуса:**
    ```bash
